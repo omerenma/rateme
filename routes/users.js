@@ -1,4 +1,12 @@
 
+var nodemailer = require('nodemailer');
+var smtpTransport = require('nodemailer-smtp-transport');
+var async = require('async');
+var crypto = require('crypto');
+var User = require('../models/user');
+var secrete = require('../secrete/secrete');
+
+
 module.exports = (app, passport) => {
   app.get('/', (req, res, next) =>{
     res.render('index', {title:'Index || RateMe'});
@@ -36,6 +44,159 @@ app.post('/login',validateLogin, passport.authenticate('local.login', {
 app.get('/home', (req, res)=>{
   res.render('home', {title:'Home  || RateMe'});
 });
+
+// Forgot rout
+app.get('/forgot', (req, res) => {
+  var errors = req.flash('error');
+  var info = req.flash('info');
+ res.render('user/forgot', 
+ {title: 'Request Password Reset', 
+ messages:errors, 
+ hasErrors:errors.length > 0, 
+ info:info, 
+ noErrors:info.length > 0 });
+});
+
+app.post('/forgot', (req, res, next) => {
+
+  async.waterfall([
+    function(callback){
+      crypto.randomBytes(20, (err, buf) => {
+        var token = buf.toString('hex');
+        callback(err, token);
+      });
+    },
+    function(token, callback){
+      User.findOne({'email': req.body.email}, (err, user) => {
+        if(!user){
+          req.flash('error', 'No Account With That Exist Or Email is Invalid');
+          return res.redirect('/forgot');
+        }
+user.passwordResetToken = token;
+user.passwordResetExpires = Date.now() + 60*60*1000;
+user.save((err) => {
+  callback(err, token, user)
+});
+
+      })
+    },
+    function(token, user, callback){
+      var smtpTransport = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+          user: secrete.auth.user,
+          pass: secrete.auth.pass
+        }
+      });
+      var mailOptions = {
+        to: user.email,
+        from: 'RateMe '+'<'+secrete.auth.user+'>',
+        subject: 'RateMe Application Password Reset Token',
+        text: 'You have requested for password reset tokn. \n\n'+
+            'Please on the link to complete the process: \n\n'+
+            'http://localhost:3000/reset/'+token+'\n\n'
+        
+      };
+      smtpTransport.sendMail(mailOptions, (err, response) => {
+        req.flash('info', 'A password reset token has been sent to ' +user.email);
+        return callback(err, user);
+      });
+    }
+  ], (err) => {
+    if(err){
+      return next(err);
+    }else{
+      res.redirect('/forgot');
+    }
+  });
+
+})
+// Reset password route / GET
+app.get('/reset/:token', (req, res) => {
+        
+  User.findOne({passwordResetToken:req.params.token, passwordResetExpires: {$gt: Date.now()}}, (err, user) => {
+      if(!user){
+          req.flash('error', 'Password reset token has expired or is invalid. Enter your email to get a new token.');
+          return res.redirect('/forgot');
+      }
+      var errors = req.flash('error');
+      var success = req.flash('success');
+      
+      res.render('user/reset', {title: 'Reset Your Password', messages: errors, hasErrors: errors.length > 0, success:success, noErrors:success.length > 0,});
+  });
+});
+
+// Reset password route / POST
+app.post('/reset/:token', (req, res) => {
+  async.waterfall([
+      function(callback){
+          User.findOne({passwordResetToken:req.params.token, passwordResetExpires: {$gt: Date.now()}}, (err, user) => {
+              if(!user){
+                  req.flash('error', 'Password reset token has expired or is invalid. Enter your email to get a new token.');
+                  return res.redirect('/forgot');
+              }
+              
+              req.checkBody('password', 'Password is Required').notEmpty();
+              req.checkBody('password', 'Password Must Not Be Less Than 5').isLength({min:5});
+              req.check("password", "Password Must Contain at least 1 Number.").matches(/^(?=.*\d)(?=.*[a-z])[0-9a-z]{5,}$/, "i");
+              
+              var errors = req.validationErrors();
+              
+              if(req.body.password == req.body.confirmPassword){
+                  if(errors){
+                      var messages = [];
+                      errors.forEach((error) => {
+                          messages.push(error.msg)
+                      })
+                      
+                      var errors = req.flash('error');
+                      res.redirect('/reset/'+req.params.token);
+                  }else{
+                      user.password = user.encryptPassword(req.body.password);
+                      user.passwordResetToken = undefined;
+                      user.passwordResetExpires = undefined;
+                      
+                      user.save((err) => {
+                          req.flash('success', 'Your password has been successfully updated.');
+                          callback(err, user);
+                      })
+                  }
+              }else{
+                  req.flash('error', 'Password and confirm password are not equal.');
+                  res.redirect('/reset/'+req.params.token);
+              }
+                               
+          });
+      },
+      
+      function(user, callback){
+          var smtpTransport = nodemailer.createTransport({
+              service: 'Gmail',
+              auth: {
+                  user: secret.auth.username,
+                  pass: secret.auth.password
+              }
+          });
+          
+          var mailOptions = {
+              to: user.email,
+              from: 'RateMe '+'<'+secret.auth.user+'>',
+              subject: 'Your password Has Been Updated.',
+              text: 'This is a confirmation that you updated the password for '+user.email
+          };
+          
+          smtpTransport.sendMail(mailOptions, (err, response) => {
+              callback(err, user);
+              
+              var error = req.flash('error');
+              var success = req.flash('success');
+              
+              res.render('user/reset', {title: 'Reset Your Password', messages: error, hasErrors: error.length > 0, success:success, noErrors:success.length > 0});
+          });
+      }
+  ]);
+});
+
 
 }
 

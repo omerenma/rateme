@@ -12,6 +12,7 @@ var validator = require('express-validator');
 
 var app = express();
 require('./config/passport');
+require('./secrete/secrete');
 mongoose.Promise = global.Promise;
 mongoose.connect('mongodb://localhost:27017/rateme',{useNewUrlParser:true} );
 app.use(express.static('public'))
