@@ -9,7 +9,11 @@ var secrete = require('../secrete/secrete');
 
 module.exports = (app, passport) => {
   app.get('/', (req, res, next) =>{
-    res.render('index', {title:'Index || RateMe'});
+    if(req.session.cookie.originalMaxAge !== null){
+      res.redirect('/home');
+  }else{
+      res.render('index', {title:'Index || RateMe'});
+  }
     });
 
     // Sign up route
@@ -35,10 +39,28 @@ module.exports = (app, passport) => {
     // Login Post
     // To use the errors function copy the function name 'validate'and paste before passport.authenticate
 app.post('/login',validateLogin, passport.authenticate('local.login', {
+  //successRedirect: '/home',
+  failureRedirect: '/login',
+  failureFlash: true
+}), (req, res) => {
+  if(req.body.rememberme){
+    req.session.cookie.maxAge = 30*24*60*60*1000; // 30 days
+  }else {
+    req.session.cookie.expires = null;
+  }
+  res.redirect('/home')
+});
+
+
+// Facebook route
+app.get('/auth/facebook', passport.authenticate('facebook', {scope: 'email'}));
+
+app.get('/auth/facebook/callback', passport.authenticate('facebook', {
   successRedirect: '/home',
   failureRedirect: '/login',
   failureFlash: true
-}));
+}))
+
 
 // Home route
 app.get('/home', (req, res)=>{
@@ -56,20 +78,23 @@ app.get('/forgot', (req, res) => {
  info:info, 
  noErrors:info.length > 0 });
 });
-
+// use nodemailer, smtpTransport and async
 app.post('/forgot', (req, res, next) => {
 
   async.waterfall([
     function(callback){
       crypto.randomBytes(20, (err, buf) => {
+        // Convert the buf value to string and store in token as a variable
         var token = buf.toString('hex');
         callback(err, token);
       });
     },
+    // Pass token as an argument to the next function
+    // This is actually a higher order function that accepts other functions as argument
     function(token, callback){
       User.findOne({'email': req.body.email}, (err, user) => {
         if(!user){
-          req.flash('error', 'No Account With That Exist Or Email is Invalid');
+          req.flash('error', 'No Account With That  Exist Or Email is Invalid');
           return res.redirect('/forgot');
         }
 user.passwordResetToken = token;
@@ -81,6 +106,7 @@ user.save((err) => {
       })
     },
     function(token, user, callback){
+      // Use nodemailer to send mail to the user
       var smtpTransport = nodemailer.createTransport({
         service: 'Gmail',
         auth: {
@@ -88,6 +114,7 @@ user.save((err) => {
           pass: secrete.auth.pass
         }
       });
+      // Content of the email message
       var mailOptions = {
         to: user.email,
         from: 'RateMe '+'<'+secrete.auth.user+'>',
@@ -97,6 +124,7 @@ user.save((err) => {
             'http://localhost:3000/reset/'+token+'\n\n'
         
       };
+      // send mail now using smtpTransport
       smtpTransport.sendMail(mailOptions, (err, response) => {
         req.flash('info', 'A password reset token has been sent to ' +user.email);
         return callback(err, user);
@@ -197,7 +225,13 @@ app.post('/reset/:token', (req, res) => {
   ]);
 });
 
-
+app.get('/logout', (req, res) => {
+  // Use the logout method and destroy method provided by passport
+  req.logout();
+  req.session.destroy(err => {
+        res.redirect('/');
+    });
+})
 }
 
 // Validate incoming data field before authenticattion
