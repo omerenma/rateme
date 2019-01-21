@@ -37,7 +37,9 @@ app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Require router files
 require('./routes/users')(app, passport);
+require('./routes/company')(app);
 
  
 app.listen(3000, ()=>{

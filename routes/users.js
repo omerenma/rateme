@@ -64,7 +64,7 @@ app.get('/auth/facebook/callback', passport.authenticate('facebook', {
 
 // Home route
 app.get('/home', (req, res)=>{
-  res.render('home', {title:'Home  || RateMe'});
+  res.render('home', {title:'Home  || RateMe' , user: req.user});
 });
 
 // Forgot rout
