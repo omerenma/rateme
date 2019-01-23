@@ -4,8 +4,8 @@ module.exports = {
     pass: 'kingsly8'
   },
   facebook: {
-    clientID: '297608590803163',
-    clientSecrete: 'a0cdab0568e5be5ab9143f4b814de39e',
+    clientID: '297400140965673',
+    clientSecrete: '01822b79e8711138020b36a01e46f26c',
     profileFields: ['email', 'dispalyName'],
     callbackURL: 'http://localhost:3000/auth/facebook/callback',
     passReqToCallback: true
