@@ -17,42 +17,59 @@
     </div>
     <br>
     <div class="bodyDiv">
+        
+            <% if(noErrors) {%>
+                <div class="alert alert-success">
+                   <a href="#" class="close" data-dismiss="alert" aria-label="close">
+                       &times;
+                   </a>
+                   <%= success %>
+        
+                </div>
+            <% } %>
+
       <h4>Register Company</h4>
 
       <form method="POST" action="/company/create">
 
         <div class="form-group ">
             <label for="">Company Name</label>
+            <!-- this is our error message from the company form submision -->
             <span id="errorMsg1"></span>
             <input id="name" class="form-control" name="name" type="text" style="margin-bottom:20px;">
         </div>
 
         <div class="form-group ">
             <label for="">Address</label>
+            <!-- this is our error message from the company form submision -->
             <span id="errorMsg2"></span>
             <input id="address" class="form-control" name="address" type="text" style="margin-bottom:20px;">
         </div>
 
         <div class="form-group ">
             <label for="">City</label>
+            <!-- this is our error message from the company form submision -->
             <span id="errorMsg3"></span>
             <input id="city" class="form-control" name="city" type="text" style="margin-bottom:20px;">
         </div>
 
         <div class="form-group ">
             <label for="">Country</label>
+            <!-- this is our error message from the company form submision -->
             <span id="errorMsg4"></span>
             <input id="country" class="form-control" name="country" type="text" style="margin-bottom:20px;">
         </div>
 
         <div class="form-group ">
             <label for="">Sector</label>
+            <!-- this is our error message from the company form submision -->
             <span id="errorMsg5"></span>
             <input id="sector" class="form-control" name="sector" type="text" style="margin-bottom:20px;">
         </div>
 
         <div class="form-group ">
             <label for="">Website</label>
+            <!-- this is our error message from the company form submision -->
             <span id="errorMsg6"></span>
             <input id="website" class="form-control" name="website" type="text" style="margin-bottom:20px;">
         </div>
@@ -99,3 +116,4 @@
 
 </div>
 
+<script src="/js/validate.js"></script>
