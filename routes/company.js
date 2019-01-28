@@ -1,6 +1,8 @@
 var formidable= require('formidable');
 var path = require('path');
-var fs = require('fs')
+var fs = require('fs');
+var async = require('async');
+var User = require('../models/user')
 var Company = require('../models/company');
 
 
@@ -36,7 +38,7 @@ module.exports = (app) =>{
     // Create an incoming form object using the new kewword
     var form = new formidable.IncomingForm();
     // Store the data into the folder called uploads to save the file
-    form.uploadDir = path.join( __dirname + '../public/uploads');
+    form.uploadDir = path.join(-__dirname, + '../public/uploads');
     //Rename the files so that they can use their original name.
     // because once they are uploaded they will take a different name
     form.on('file', (field, file) =>{
@@ -57,11 +59,70 @@ module.exports = (app) =>{
 
  app.get('/companies', (req, res) => {
    Company.find({}, (err, result) => {
-     console.log(result)
     res.render('company/companies', {title: 'All Companies', user: req.user, data:result})
     
   });
    });
+
+   app.get('/profile/:id', (req, res) => {
+     Company.findOne({'_id': req.params.id}, (err, data)=> {
+      res.render('company/profile', {title: 'Company Name---', user:req.user, data:data, id:req.params.id})
+
+     })
+   })
+
+   app.get('/company/register/:id', (req, res) => {
+     Company.findOne({'_id':req.params.id}, (err, data) => {
+      res.render('company/register', {title: 'Company Register Employee', user:req.user, data:data})
+     });
+  });
+
+// Post route to register a logged in employee
+  app.post('/company/register/:id', (req, res, next) => {
+    // This callback is to update the company's collection and push the data into the fields as 
+ // specified by the the company.js User model
+    async.parallel([
+        function(callback){
+           Company.update({
+               '_id': req.params.id,
+               'employees.employeeId': {$ne: req.user._id}
+           },
+           {
+                $push: {employees: {employeeId: req.user._id, employeeFullname:req.user.fullname, employeeRole:req.body.role}}
+           }, (err, count) => {
+               if(err){
+                   return next(err);
+               }
+               callback(err, count);
+           });
+        },
+        
+        function(callback){
+          // Retrieve the company's data and pass it to the second function using async.waterfall
+            async.waterfall([
+                function(callback){
+                    Company.findOne({'_id': req.params.id}, (err, data) => {
+                        callback(err, data);
+                    })
+                },
+          // Pass the data to this second function and find the user registering as an employee and update the field for the role
+                function(data, callback){
+                    User.findOne({'_id': req.user._id}, (err, result) => {
+                        result.role = req.body.role;
+                        result.company.name = data.name;
+                        result.company.image = data.image;
+                        
+                        result.save((err) => {
+                            res.redirect('/home');
+                        });
+                    })
+                }
+            ]);
+        }
+    ]);
+});
+
+  
    
 
 }
