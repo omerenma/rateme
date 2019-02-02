@@ -4,6 +4,7 @@ var fs = require('fs');
 var async = require('async');
 var User = require('../models/user')
 var Company = require('../models/company');
+var {arrayAverage} = require('../myFunctions')
 
 
 
@@ -66,13 +67,15 @@ module.exports = (app) =>{
 
    app.get('/profile/:id', (req, res) => {
      Company.findOne({'_id': req.params.id}, (err, data)=> {
-      res.render('company/profile', {title: 'Company Name---', user:req.user, data:data, id:req.params.id})
+        var avg = arrayAverage(data.ratingNumber);
+      res.render('company/profile', {title: 'Company Name---', user:req.user, data:data, id:req.params.id, average: avg})
 
      })
    })
 
    app.get('/company/register/:id', (req, res) => {
      Company.findOne({'_id':req.params.id}, (err, data) => {
+         
       res.render('company/register', {title: 'Company Register Employee', user:req.user, data:data})
      });
   });
@@ -123,6 +126,34 @@ module.exports = (app) =>{
 });
 
   
-   
+   app.get('/:name/employees', (req, res) => {
+       Company.findOne({'name': req.params.name}, (err, data) => {
+        res.render('company/employees', {title:'Company Employees', user: req.user, data:data})
+
+       })
+   })
+
+   app.get('/companies/leaderboard', (req, res) => {
+    Company.find({}, (err, result) => {
+        res.render('company/leaderboard', {title: 'Companies Leadebaord || RateMe', user: req.user, data: result});
+    }).sort({'ratingSum': -1});
+});
+
+app.get('/company/search', (req, res) => {
+    res.render('company/search', {title: 'Find a Company', user:req.user});
+});
+
+app.post('/company/search', (req, res) => {
+    var name = req.body.search;
+    var regex = new RegExp(name, 'i');
+    
+    Company.find({'$or': [{'name':regex}]}, (err, data) => {
+        if(err){
+            console.log(err);
+        }
+        
+        res.redirect('/profile/'+data[0]._id);
+    });
+});
 
 }

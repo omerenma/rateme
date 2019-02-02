@@ -90,21 +90,25 @@ $(document).ready(function(){
       
       if(clickedValue === 0 || clickedValue > 5){
           valid = false;
-          $('#error').html('<div class="alert alert-dnger">Please give a rating and review before you submit.</div>');
+          $('#error').html('<div class="alert alert-danger">Please give a rating and review before you submit.</div>');
       }else{
           $('#error').html('');
       }
       
       if(valid === true){
-          
+          // Send review data to database with ajax
           $.ajax({
               url: '/review/'+id,
               type: 'POST',
+              // This is the data to be sent to database
+              // The keys name could anything e.g clickedValue
+              
               data: {
                   clickedValue: clickedValue,
                   review: review,
                   sender: sender
               },
+              // Clear input field after submision
               success: function(){
                   $('#review').val('');
                   $('#sender').val('');

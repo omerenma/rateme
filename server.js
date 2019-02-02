@@ -9,6 +9,8 @@ var MongoStore = require('connect-mongo')(session);
 var passport = require('passport');
 var flash = require('connect-flash');
 var validator = require('express-validator');
+var _ = require('underscore');
+var moment = require('moment')
 
 var app = express();
 require('./config/passport');
@@ -37,10 +39,20 @@ app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Make the _ var globallay availbale every where in the application
+app.locals._ = _;
+// Another way is to write a function for _
+// var globalVar = (req, res, next) => {
+//   res.locals._ = _;
+// }
+// app.use(globalVar)
+app.locals.moment = moment;
+
 // Require router files
 require('./routes/users')(app, passport);
 require('./routes/company')(app);
 require('./routes/review')(app)
+ require('./routes/message')(app)
 
  
 app.listen(3000, ()=>{

@@ -5,6 +5,7 @@ var async = require('async');
 var crypto = require('crypto');
 var User = require('../models/user');
 var secrete = require('../secrete/secrete');
+var Company = require('../models/company')
 
 
 module.exports = (app, passport) => {
@@ -12,7 +13,10 @@ module.exports = (app, passport) => {
     if(req.session.cookie.originalMaxAge !== null){
       res.redirect('/home');
   }else{
-      res.render('index', {title:'Index || RateMe'});
+      Company.find({}, (err, result) => {
+        res.render('index', {title: 'Index', user: req.user, data:result})
+        
+      });
   }
     });
 

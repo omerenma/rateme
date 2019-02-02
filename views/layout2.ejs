@@ -9,7 +9,21 @@
 
     <!-- <script src="/js/upload.js"></script> -->
     <script src="/js/rating.js"></script>
-    
+    <script src="/js/jquery.raty.js"></script>
+
+    <script>
+        $(document).ready(function() {
+           $.fn.raty.defaults.path = '/images/';
+           $('.star').raty({
+               readOnly : true,
+               score: function(data){
+                    return $(this).attr('data-score');
+               }
+            });
+        });    
+        </script>
+        
+
 
 </body>
 </html>

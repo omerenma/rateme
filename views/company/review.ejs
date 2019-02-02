@@ -20,7 +20,9 @@
             <div class="bodyDiv">
 				<h4 style="">Write Review</h4>
                 
-
+              <% if(hasmsg)  {%>
+                <div class="alert alert-success"><%= msg %></div>
+              <%} %>
 	            <form action="" method="post">
 	                <input class="form-control" id="id" value="<%= data._id %>" type="hidden">
 	                <div class="form-group ">
